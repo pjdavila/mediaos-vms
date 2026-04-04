@@ -16,6 +16,7 @@ import { createDistributionStatusRouter, createVideoDistStatusRouter, createChan
 import { createSchedulerRouter } from "./routes/scheduler.js";
 import { createAdPodsRouter, createVastRouter, createSsaiRouter, createAdTrackingRouter } from "./routes/ads.js";
 import { createPlansRouter, createSubscriptionsRouter, createAccessRulesRouter, createAccessCheckRouter, createStripeWebhookRouter } from "./routes/subscriptions.js";
+import { createLicensesRouter, createLicenseUsageRouter } from "./routes/licensing.js";
 import { paywallGate } from "./middleware/paywall.js";
 import { startSchedulerPoll } from "./services/scheduler.js";
 
@@ -43,6 +44,30 @@ app.use(express.json());
 // Health check
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "mediaos-vms" });
+});
+
+// Debug env vars (safe — only shows key names, not values)
+app.get("/api/debug/env", (_req, res) => {
+  const keys = [
+    "FIVE_CENTS_CDN_API_KEY",
+    "FIVE_CENTS_CDN_BASE_URL",
+    "FIVE_CENTS_CDN_VOD_ZONE_ID",
+    "FIVE_CENTS_CDN_FTP_HOST",
+    "FIVE_CENTS_CDN_FTP_USER",
+    "FIVE_CENTS_CDN_FTP_PASS",
+    "FIVE_CENTS_CDN_S3_ACCESS_KEY",
+    "FIVE_CENTS_CDN_S3_SECRET_KEY",
+    "FIVE_CENTS_CDN_S3_ENDPOINT",
+    "FIVE_CENTS_CDN_S3_BUCKET",
+    "FIVE_CENTS_CDN_OS_TOKEN",
+    "FIVE_CENTS_CDN_OS_PROJECT_ID",
+    "PORT",
+  ];
+  const result: Record<string, boolean> = {};
+  for (const k of keys) {
+    result[k] = !!process.env[k];
+  }
+  res.json({ env_vars_set: result });
 });
 
 // Video routes (VOD upload, transcode, HLS)
@@ -106,6 +131,10 @@ app.use("/api/subscriptions", createSubscriptionsRouter());
 
 // Paywall gate on SSAI manifest (premium stream access)
 app.use("/api/ads/ssai/manifest", paywallGate);
+
+// Content licensing: CRUD /api/licenses, usage tracking /api/licenses/:id/usages
+app.use("/api/licenses", createLicensesRouter());
+app.use("/api/licenses/:licenseId/usages", createLicenseUsageRouter());
 
 app.listen(port, () => {
   console.log(`MediaOS VMS running on port ${port}`);
