@@ -15,6 +15,8 @@ import { createPublishRouter } from "./routes/publish.js";
 import { createDistributionStatusRouter, createVideoDistStatusRouter, createChannelDistStatusRouter } from "./routes/distribution-status.js";
 import { createSchedulerRouter } from "./routes/scheduler.js";
 import { createAdPodsRouter, createVastRouter, createSsaiRouter, createAdTrackingRouter } from "./routes/ads.js";
+import { createPlansRouter, createSubscriptionsRouter, createAccessRulesRouter, createAccessCheckRouter, createStripeWebhookRouter } from "./routes/subscriptions.js";
+import { paywallGate } from "./middleware/paywall.js";
 import { startSchedulerPoll } from "./services/scheduler.js";
 
 const app = express();
@@ -94,6 +96,16 @@ app.use("/api/ads/pods", createAdPodsRouter());
 app.use("/api/ads/vast", createVastRouter());
 app.use("/api/ads/ssai", createSsaiRouter());
 app.use("/api/ads/tracking", createAdTrackingRouter());
+
+// Subscription & paywall: CRUD plans, subscriptions, access rules, Stripe webhooks
+app.use("/api/subscriptions/plans", createPlansRouter());
+app.use("/api/subscriptions/access-rules", createAccessRulesRouter());
+app.use("/api/subscriptions/access", createAccessCheckRouter());
+app.use("/api/subscriptions/webhooks", createStripeWebhookRouter());
+app.use("/api/subscriptions", createSubscriptionsRouter());
+
+// Paywall gate on SSAI manifest (premium stream access)
+app.use("/api/ads/ssai/manifest", paywallGate);
 
 app.listen(port, () => {
   console.log(`MediaOS VMS running on port ${port}`);
