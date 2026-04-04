@@ -11,6 +11,7 @@ import { createChaptersRouter } from "./routes/chapters.js";
 import { createPipelineRouter, createWebhookRouter } from "./routes/pipeline.js";
 import { createChannelsRouter } from "./routes/channels.js";
 import { createFormatAdaptRouter } from "./routes/format-adapt.js";
+import { createPublishRouter } from "./routes/publish.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -69,6 +70,9 @@ app.use("/api/channels", createChannelsRouter());
 
 // Format adaptation: POST /api/videos/:videoId/adapt, GET .../adapt/preview
 app.use("/api/videos/:videoId/adapt", createFormatAdaptRouter());
+
+// Publishing: POST /api/videos/:videoId/publish, POST .../publish/batch
+app.use("/api/videos/:videoId/publish", createPublishRouter());
 
 // Webhook management: POST/GET/DELETE /api/webhooks
 app.use("/api/webhooks", createWebhookRouter());
