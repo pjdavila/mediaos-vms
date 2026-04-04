@@ -1,10 +1,27 @@
 import "dotenv/config";
 import express from "express";
+import cors from "cors";
 import { createVideoRouter } from "./routes/videos.js";
 import { createStreamRouter } from "./routes/streams.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
+
+const allowedOrigins = [
+  "https://videoos-gray.vercel.app",
+  "https://videoos.ai",
+];
+if (process.env.NODE_ENV !== "production") {
+  allowedOrigins.push("http://localhost:3000", "http://localhost:3001");
+}
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 app.use(express.json());
 
