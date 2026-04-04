@@ -17,6 +17,7 @@ import { createSchedulerRouter } from "./routes/scheduler.js";
 import { createAdPodsRouter, createVastRouter, createSsaiRouter, createAdTrackingRouter } from "./routes/ads.js";
 import { createPlansRouter, createSubscriptionsRouter, createAccessRulesRouter, createAccessCheckRouter, createStripeWebhookRouter } from "./routes/subscriptions.js";
 import { createLicensesRouter, createLicenseUsageRouter } from "./routes/licensing.js";
+import { createRevenueEventsRouter, createRevenueAnalyticsRouter } from "./routes/revenue.js";
 import { paywallGate } from "./middleware/paywall.js";
 import { startSchedulerPoll } from "./services/scheduler.js";
 
@@ -135,6 +136,10 @@ app.use("/api/ads/ssai/manifest", paywallGate);
 // Content licensing: CRUD /api/licenses, usage tracking /api/licenses/:id/usages
 app.use("/api/licenses", createLicensesRouter());
 app.use("/api/licenses/:licenseId/usages", createLicenseUsageRouter());
+
+// Revenue analytics: events /api/revenue/events, analytics /api/revenue/analytics
+app.use("/api/revenue/events", createRevenueEventsRouter());
+app.use("/api/revenue/analytics", createRevenueAnalyticsRouter());
 
 app.listen(port, () => {
   console.log(`MediaOS VMS running on port ${port}`);
