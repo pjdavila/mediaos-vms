@@ -14,6 +14,7 @@ import { createFormatAdaptRouter } from "./routes/format-adapt.js";
 import { createPublishRouter } from "./routes/publish.js";
 import { createDistributionStatusRouter, createVideoDistStatusRouter, createChannelDistStatusRouter } from "./routes/distribution-status.js";
 import { createSchedulerRouter } from "./routes/scheduler.js";
+import { createAdPodsRouter, createVastRouter, createSsaiRouter, createAdTrackingRouter } from "./routes/ads.js";
 import { startSchedulerPoll } from "./services/scheduler.js";
 
 const app = express();
@@ -87,6 +88,12 @@ app.use("/api/schedules", createSchedulerRouter());
 
 // Webhook management: POST/GET/DELETE /api/webhooks
 app.use("/api/webhooks", createWebhookRouter());
+
+// Ad integration: CRUD /api/ads/pods, VAST /api/ads/vast, SSAI /api/ads/ssai, tracking /api/ads/tracking
+app.use("/api/ads/pods", createAdPodsRouter());
+app.use("/api/ads/vast", createVastRouter());
+app.use("/api/ads/ssai", createSsaiRouter());
+app.use("/api/ads/tracking", createAdTrackingRouter());
 
 app.listen(port, () => {
   console.log(`MediaOS VMS running on port ${port}`);
