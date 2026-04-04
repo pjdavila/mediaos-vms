@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: mediaos-vms
+    region: oregon
+    plan: starter
+    repo: https://github.com/pjdavila/mediaos-vms
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
