@@ -10,8 +10,13 @@ import {
 
 export function createStreamRouter(): Router {
   const router = Router();
-  const config = loadCdnConfig();
-  const client = createClient(config);
+
+  let _client: ReturnType<typeof createClient> | null = null;
+
+  function getCdnClient() {
+    if (!_client) _client = createClient(loadCdnConfig());
+    return _client;
+  }
 
   // POST /api/streams — Create a new live push stream
   router.post("/", async (req, res) => {
@@ -23,7 +28,7 @@ export function createStreamRouter(): Router {
     }
 
     try {
-      const stream = await createLiveStream(client, {
+      const stream = await createLiveStream(getCdnClient(), {
         name,
         server,
         codec,
@@ -42,7 +47,7 @@ export function createStreamRouter(): Router {
   // GET /api/streams — List all live streams
   router.get("/", async (_req, res) => {
     try {
-      const streams = await listLiveStreams(client);
+      const streams = await listLiveStreams(getCdnClient());
       res.json({ status: "ok", data: streams });
     } catch (err) {
       console.error("[streams] Error listing streams:", err);
@@ -64,7 +69,7 @@ export function createStreamRouter(): Router {
     const includeStats = req.query.stats === "true";
 
     try {
-      const stream = await getLiveStream(client, streamId, includeStats);
+      const stream = await getLiveStream(getCdnClient(), streamId, includeStats);
       res.json({ status: "ok", data: stream });
     } catch (err) {
       console.error("[streams] Error getting stream:", err);
@@ -84,7 +89,7 @@ export function createStreamRouter(): Router {
     }
 
     try {
-      const stream = await setStreamEnabled(client, streamId, true);
+      const stream = await setStreamEnabled(getCdnClient(), streamId, true);
       res.json({ status: "ok", data: stream });
     } catch (err) {
       console.error("[streams] Error enabling stream:", err);
@@ -104,7 +109,7 @@ export function createStreamRouter(): Router {
     }
 
     try {
-      const stream = await setStreamEnabled(client, streamId, false);
+      const stream = await setStreamEnabled(getCdnClient(), streamId, false);
       res.json({ status: "ok", data: stream });
     } catch (err) {
       console.error("[streams] Error disabling stream:", err);
@@ -124,7 +129,7 @@ export function createStreamRouter(): Router {
     }
 
     try {
-      await deleteLiveStream(client, streamId);
+      await deleteLiveStream(getCdnClient(), streamId);
       res.json({ status: "ok", message: "Stream deleted" });
     } catch (err) {
       console.error("[streams] Error deleting stream:", err);

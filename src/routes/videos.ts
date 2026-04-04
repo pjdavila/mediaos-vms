@@ -21,8 +21,19 @@ const upload = multer({
 
 export function createVideoRouter(): Router {
   const router = Router();
-  const config = loadCdnConfig();
-  const client = createClient(config);
+
+  let _config: ReturnType<typeof loadCdnConfig> | null = null;
+  let _client: ReturnType<typeof createClient> | null = null;
+
+  function getCdnConfig() {
+    if (!_config) _config = loadCdnConfig();
+    return _config;
+  }
+
+  function getCdnClient() {
+    if (!_client) _client = createClient(getCdnConfig());
+    return _client;
+  }
 
   // POST /api/videos/upload — Upload video, transcode, return HLS URL
   router.post("/upload", upload.single("video"), async (req, res) => {
@@ -37,7 +48,7 @@ export function createVideoRouter(): Router {
         ? Number(req.body.profileId)
         : undefined;
 
-      const result = await processVideo(req.file.path, config, client, {
+      const result = await processVideo(req.file.path, getCdnConfig(), getCdnClient(), {
         autoTranscode,
         profileId,
         onProgress: (stage, detail) => {
@@ -67,7 +78,7 @@ export function createVideoRouter(): Router {
   // GET /api/videos/jobs — List active transcoding jobs
   router.get("/jobs", async (_req, res) => {
     try {
-      const jobs = await getActiveJobs(client);
+      const jobs = await getActiveJobs(getCdnClient());
       res.json({ status: "ok", data: jobs });
     } catch (err) {
       console.error("[transcode] Error listing jobs:", err);
@@ -81,7 +92,7 @@ export function createVideoRouter(): Router {
   // GET /api/videos/profiles — List transcoding profiles
   router.get("/profiles", async (_req, res) => {
     try {
-      const profiles = await client.listProfiles();
+      const profiles = await getCdnClient().listProfiles();
       res.json({ status: "ok", data: profiles });
     } catch (err) {
       console.error("[transcode] Error listing profiles:", err);
@@ -95,7 +106,7 @@ export function createVideoRouter(): Router {
   // GET /api/videos/zones — List CDN zones
   router.get("/zones", async (_req, res) => {
     try {
-      const zones = await client.listZones();
+      const zones = await getCdnClient().listZones();
       res.json({ status: "ok", data: zones });
     } catch (err) {
       console.error("[zones] Error listing zones:", err);
