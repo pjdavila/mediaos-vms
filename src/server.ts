@@ -18,6 +18,7 @@ import { createAdPodsRouter, createVastRouter, createSsaiRouter, createAdTrackin
 import { createPlansRouter, createSubscriptionsRouter, createAccessRulesRouter, createAccessCheckRouter, createStripeWebhookRouter } from "./routes/subscriptions.js";
 import { createLicensesRouter, createLicenseUsageRouter } from "./routes/licensing.js";
 import { createRevenueEventsRouter, createRevenueAnalyticsRouter } from "./routes/revenue.js";
+import { createMonetizationRulesRouter, createMonetizationMatchRouter } from "./routes/monetization-rules.js";
 import { paywallGate } from "./middleware/paywall.js";
 import { startSchedulerPoll } from "./services/scheduler.js";
 
@@ -140,6 +141,10 @@ app.use("/api/licenses/:licenseId/usages", createLicenseUsageRouter());
 // Revenue analytics: events /api/revenue/events, analytics /api/revenue/analytics
 app.use("/api/revenue/events", createRevenueEventsRouter());
 app.use("/api/revenue/analytics", createRevenueAnalyticsRouter());
+
+// Monetization rules engine: CRUD /api/monetization/rules, match /api/monetization/match
+app.use("/api/monetization/rules", createMonetizationRulesRouter());
+app.use("/api/monetization/match", createMonetizationMatchRouter());
 
 app.listen(port, () => {
   console.log(`MediaOS VMS running on port ${port}`);
