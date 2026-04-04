@@ -8,6 +8,7 @@ import { createAiTagsRouter } from "./routes/ai-tags.js";
 import { createTranscriptsRouter } from "./routes/transcripts.js";
 import { createThumbnailsRouter } from "./routes/thumbnails.js";
 import { createChaptersRouter } from "./routes/chapters.js";
+import { createPipelineRouter, createWebhookRouter } from "./routes/pipeline.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -57,6 +58,12 @@ app.use("/api/videos/:videoId/thumbnails", createThumbnailsRouter());
 
 // Chapter detection: POST /api/videos/:videoId/chapters
 app.use("/api/videos/:videoId/chapters", createChaptersRouter());
+
+// AI metadata pipeline: POST /api/videos/:videoId/pipeline, GET .../pipeline/status
+app.use("/api/videos/:videoId/pipeline", createPipelineRouter());
+
+// Webhook management: POST/GET/DELETE /api/webhooks
+app.use("/api/webhooks", createWebhookRouter());
 
 app.listen(port, () => {
   console.log(`MediaOS VMS running on port ${port}`);

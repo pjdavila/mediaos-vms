@@ -17,6 +17,10 @@ export interface VideoPipelineOptions {
   autoTranscode?: boolean;
   priority?: number;
   onProgress?: (stage: string, detail: string) => void;
+  /** If set, triggers AI metadata generation asynchronously after pipeline completes */
+  videoId?: string;
+  /** Options passed to the AI metadata pipeline */
+  aiMetadataOptions?: import("./ai-metadata-pipeline.js").AiMetadataPipelineOptions;
 }
 
 /**
@@ -71,6 +75,13 @@ export async function processVideo(
     : null;
 
   progress("done", `Pipeline complete. HLS: ${hlsUrl ?? "pending"}`);
+
+  // Trigger AI metadata pipeline async (fire-and-forget) if videoId is provided
+  if (options?.videoId) {
+    const { triggerAiMetadataPipeline } = await import("./ai-metadata-pipeline.js");
+    triggerAiMetadataPipeline(options.videoId, localFilePath, options.aiMetadataOptions);
+    progress("ai-metadata", "AI metadata pipeline triggered (async)");
+  }
 
   return {
     filename: uploadResult.filename,

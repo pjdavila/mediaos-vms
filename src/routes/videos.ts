@@ -47,10 +47,13 @@ export function createVideoRouter(): Router {
       const profileId = req.body.profileId
         ? Number(req.body.profileId)
         : undefined;
+      const videoId = req.body.videoId as string | undefined;
+      const skipAiMetadata = req.body.skipAiMetadata === "true";
 
       const result = await processVideo(req.file.path, getCdnConfig(), getCdnClient(), {
         autoTranscode,
         profileId,
+        videoId: !skipAiMetadata ? videoId : undefined,
         onProgress: (stage, detail) => {
           console.log(`[video-pipeline] ${stage}: ${detail}`);
         },
@@ -64,6 +67,7 @@ export function createVideoRouter(): Router {
           sizeBytes: result.sizeBytes,
           hlsUrl: result.hlsUrl,
           transcode: result.transcode,
+          metadataStatus: videoId && !skipAiMetadata ? "pending" : undefined,
         },
       });
     } catch (err) {
