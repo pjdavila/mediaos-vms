@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import { createVideoRouter } from "./routes/videos.js";
 import { createStreamRouter } from "./routes/streams.js";
+import { createMetadataRouter } from "./routes/metadata.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -35,6 +36,11 @@ app.use("/api/videos", createVideoRouter());
 
 // Stream routes (live streaming CRUD)
 app.use("/api/streams", createStreamRouter());
+
+// Metadata routes: GET/PATCH /api/videos/:videoId/metadata, GET /api/videos/metadata
+const metadataRouter = createMetadataRouter();
+app.use("/api/videos/metadata", metadataRouter);
+app.use("/api/videos/:videoId/metadata", metadataRouter);
 
 app.listen(port, () => {
   console.log(`MediaOS VMS running on port ${port}`);
