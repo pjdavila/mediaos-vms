@@ -9,6 +9,7 @@ import { createTranscriptsRouter } from "./routes/transcripts.js";
 import { createThumbnailsRouter } from "./routes/thumbnails.js";
 import { createChaptersRouter } from "./routes/chapters.js";
 import { createPipelineRouter, createWebhookRouter } from "./routes/pipeline.js";
+import { createChannelsRouter } from "./routes/channels.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -61,6 +62,9 @@ app.use("/api/videos/:videoId/chapters", createChaptersRouter());
 
 // AI metadata pipeline: POST /api/videos/:videoId/pipeline, GET .../pipeline/status
 app.use("/api/videos/:videoId/pipeline", createPipelineRouter());
+
+// Distribution channels: CRUD /api/channels
+app.use("/api/channels", createChannelsRouter());
 
 // Webhook management: POST/GET/DELETE /api/webhooks
 app.use("/api/webhooks", createWebhookRouter());
