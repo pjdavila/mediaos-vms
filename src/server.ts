@@ -4,6 +4,7 @@ import cors from "cors";
 import { createVideoRouter } from "./routes/videos.js";
 import { createStreamRouter } from "./routes/streams.js";
 import { createMetadataRouter } from "./routes/metadata.js";
+import { createAiTagsRouter } from "./routes/ai-tags.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -41,6 +42,9 @@ app.use("/api/streams", createStreamRouter());
 const metadataRouter = createMetadataRouter();
 app.use("/api/videos/metadata", metadataRouter);
 app.use("/api/videos/:videoId/metadata", metadataRouter);
+
+// AI tagging: POST /api/videos/:videoId/ai-tags
+app.use("/api/videos/:videoId/ai-tags", createAiTagsRouter());
 
 app.listen(port, () => {
   console.log(`MediaOS VMS running on port ${port}`);
