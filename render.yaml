@@ -2,7 +2,7 @@ services:
   - type: web
     name: mediaos-vms
     region: oregon
-    plan: starter
+    plan: free
     repo: https://github.com/pjdavila/mediaos-vms
     runtime: node
     buildCommand: npm install && npm run build
