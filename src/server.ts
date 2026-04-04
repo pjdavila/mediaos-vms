@@ -5,6 +5,7 @@ import { createVideoRouter } from "./routes/videos.js";
 import { createStreamRouter } from "./routes/streams.js";
 import { createMetadataRouter } from "./routes/metadata.js";
 import { createAiTagsRouter } from "./routes/ai-tags.js";
+import { createTranscriptsRouter } from "./routes/transcripts.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -45,6 +46,9 @@ app.use("/api/videos/:videoId/metadata", metadataRouter);
 
 // AI tagging: POST /api/videos/:videoId/ai-tags
 app.use("/api/videos/:videoId/ai-tags", createAiTagsRouter());
+
+// Transcription: POST /api/videos/:videoId/transcripts
+app.use("/api/videos/:videoId/transcripts", createTranscriptsRouter());
 
 app.listen(port, () => {
   console.log(`MediaOS VMS running on port ${port}`);
