@@ -12,6 +12,7 @@ import { createPipelineRouter, createWebhookRouter } from "./routes/pipeline.js"
 import { createChannelsRouter } from "./routes/channels.js";
 import { createFormatAdaptRouter } from "./routes/format-adapt.js";
 import { createPublishRouter } from "./routes/publish.js";
+import { createDistributionStatusRouter, createVideoDistStatusRouter, createChannelDistStatusRouter } from "./routes/distribution-status.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3000);
@@ -73,6 +74,11 @@ app.use("/api/videos/:videoId/adapt", createFormatAdaptRouter());
 
 // Publishing: POST /api/videos/:videoId/publish, POST .../publish/batch
 app.use("/api/videos/:videoId/publish", createPublishRouter());
+
+// Distribution status: CRUD /api/distribution, per-video, per-channel
+app.use("/api/distribution", createDistributionStatusRouter());
+app.use("/api/videos/:videoId/distribution", createVideoDistStatusRouter());
+app.use("/api/channels/:channelId/distribution", createChannelDistStatusRouter());
 
 // Webhook management: POST/GET/DELETE /api/webhooks
 app.use("/api/webhooks", createWebhookRouter());
