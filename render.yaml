@@ -3,23 +3,3 @@ services:
     name: mediaos-vms
     region: oregon
     plan: free
-    repo: https://github.com/pjdavila/mediaos-vms
-    runtime: node
-    buildCommand: npm install && npm run build
-    startCommand: node dist/server.js
-    healthCheckPath: /health
-    envVars:
-      - key: NODE_VERSION
-        value: "22"
-      - key: NODE_ENV
-        value: production
-      - key: FIVE_CENTS_CDN_API_KEY
-        sync: false
-      - key: FIVE_CENTS_CDN_VOD_ZONE_ID
-        sync: false
-      - key: FIVE_CENTS_CDN_VOD_FTP_HOST
-        sync: false
-      - key: FIVE_CENTS_CDN_VOD_FTP_USER
-        sync: false
-      - key: FIVE_CENTS_CDN_VOD_FTP_PASS
-        sync: false
