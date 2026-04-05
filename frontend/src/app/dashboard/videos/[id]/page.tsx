@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Play,
@@ -15,97 +15,130 @@ import {
   BookOpen,
   Image,
   BarChart3,
-  Copy,
+  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import Link from "next/link";
+import { api, type Video } from "@/lib/api";
 
-// Mock video detail
-const videoData = {
-  id: "1",
-  title: "Product Launch Keynote 2026",
-  description:
-    "Annual product launch keynote presentation featuring new VideoOS features, platform updates, and roadmap for 2026.",
-  status: "ready" as const,
-  duration: 3420,
-  createdAt: "2026-04-03T10:00:00Z",
-  views: 12400,
-  resolution: "3840x2160",
-  format: "MP4 / H.264",
-  size: "2.4 GB",
-  fps: 60,
-  bitrate: "12 Mbps",
-  url: "#",
-  thumbnailUrl: undefined,
-  channels: ["YouTube", "Twitter/X"],
-  transcript:
-    "Welcome everyone to the 2026 Product Launch Keynote. Today we're excited to share with you the future of video management...\n\nFirst, let me walk you through our new streaming architecture that enables sub-second latency globally...\n\nNext, our AI-powered transcription engine now supports 40+ languages with 99.2% accuracy...\n\nFinally, our new distribution pipeline allows one-click publishing to all major platforms...",
-  chapters: [
-    { time: "0:00", title: "Introduction" },
-    { time: "5:30", title: "New Streaming Architecture" },
-    { time: "18:45", title: "AI Transcription Engine" },
-    { time: "32:00", title: "Distribution Pipeline" },
-    { time: "45:00", title: "Q&A" },
-  ],
+const statusBadgeConfig: Record<string, { label: string; className: string }> = {
+  ready: { label: "Ready", className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" },
+  processing: { label: "Processing", className: "border-blue-500/20 bg-blue-500/10 text-blue-400" },
+  failed: { label: "Failed", className: "border-red-500/20 bg-red-500/10 text-red-400" },
+  uploading: { label: "Uploading", className: "border-amber-500/20 bg-amber-500/10 text-amber-400" },
 };
 
-function formatDuration(seconds: number) {
+function formatDuration(seconds?: number) {
+  if (!seconds) return "--:--";
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
+  const s = Math.floor(seconds % 60);
   return h > 0
     ? `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`
     : `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+function formatBytes(bytes?: number) {
+  if (!bytes) return "—";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
 export default function VideoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const [video, setVideo] = useState<Video | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.videos.get(id).then(setVideo).catch((err) => setError(err.message)).finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-white" />
+      </div>
+    );
+  }
+
+  if (error || !video) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 text-center">
+        <p className="text-sm font-medium text-red-400">{error || "Video not found"}</p>
+        <Link href="/dashboard/videos" className="mt-4 text-xs text-zinc-500 hover:text-white">
+          <ArrowLeft className="mr-1 inline h-3 w-3" /> Back to library
+        </Link>
+      </div>
+    );
+  }
+
+  const badge = statusBadgeConfig[video.status] || statusBadgeConfig.processing;
 
   return (
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        {/* Back link */}
+        <Link href="/dashboard/videos" className="mb-4 inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-white">
+          <ArrowLeft className="h-3 w-3" /> Back to library
+        </Link>
+
         {/* Player area */}
-        <div className="grid gap-8 lg:grid-cols-[1fr,380px]">
+        <div className="mt-4 grid gap-8 lg:grid-cols-[1fr,380px]">
           {/* Player */}
           <div className="space-y-6">
             <div className="relative aspect-video overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-800">
-              <div className="flex h-full items-center justify-center">
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex h-20 w-20 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm transition-colors hover:bg-white/20"
-                >
-                  <Play className="ml-1 h-8 w-8 text-white" fill="white" />
-                </motion.button>
-              </div>
+              {video.url ? (
+                <video
+                  src={video.url}
+                  controls
+                  className="h-full w-full object-contain"
+                  poster={video.thumbnailUrl}
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex h-20 w-20 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm transition-colors hover:bg-white/20"
+                  >
+                    <Play className="ml-1 h-8 w-8 text-white" fill="white" />
+                  </motion.button>
+                </div>
+              )}
               {/* Duration bar */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 p-4">
-                <div className="h-1 overflow-hidden rounded-full bg-white/20">
-                  <div className="h-full w-1/3 rounded-full bg-gradient-to-r from-blue-500 to-violet-500" />
+              {!video.url && (
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 p-4">
+                  <div className="h-1 overflow-hidden rounded-full bg-white/20">
+                    <div className="h-full w-1/3 rounded-full bg-gradient-to-r from-blue-500 to-violet-500" />
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-xs text-white/70">
+                    <span>0:00</span>
+                    <span>{formatDuration(video.duration)}</span>
+                  </div>
                 </div>
-                <div className="mt-2 flex items-center justify-between text-xs text-white/70">
-                  <span>19:00</span>
-                  <span>{formatDuration(videoData.duration)}</span>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Title and actions */}
             <div>
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight">{videoData.title}</h1>
+                  <h1 className="text-2xl font-bold tracking-tight">{video.title}</h1>
                   <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                    {videoData.description}
+                    {video.description || "No description"}
                   </p>
                 </div>
                 <Badge
                   variant="outline"
-                  className="shrink-0 border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+                  className={`shrink-0 ${badge.className}`}
                 >
-                  Ready
+                  {badge.label}
                 </Badge>
               </div>
 
@@ -162,12 +195,9 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
                     <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
                       AI-Generated Transcript
                     </p>
-                    <button className="flex items-center gap-1 text-xs text-zinc-500 hover:text-white">
-                      <Copy className="h-3 w-3" /> Copy
-                    </button>
                   </div>
-                  <p className="whitespace-pre-line text-sm leading-relaxed text-zinc-400">
-                    {videoData.transcript}
+                  <p className="text-sm text-zinc-600 italic">
+                    Transcript will appear here once AI processing completes.
                   </p>
                 </div>
               </TabsContent>
@@ -177,19 +207,9 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
                   <p className="mb-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
                     AI-Detected Chapters
                   </p>
-                  <div className="space-y-2">
-                    {videoData.chapters.map((chapter, i) => (
-                      <button
-                        key={i}
-                        className="flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-white/[0.04]"
-                      >
-                        <span className="font-mono text-xs text-blue-400">
-                          {chapter.time}
-                        </span>
-                        <span className="text-sm text-zinc-300">{chapter.title}</span>
-                      </button>
-                    ))}
-                  </div>
+                  <p className="text-sm text-zinc-600 italic">
+                    Chapters will appear here once AI processing completes.
+                  </p>
                 </div>
               </TabsContent>
 
@@ -202,7 +222,7 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
                     {[1, 2, 3].map((i) => (
                       <div
                         key={i}
-                        className="aspect-video cursor-pointer rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 transition-all hover:ring-2 hover:ring-blue-500/50"
+                        className="aspect-video rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900"
                       />
                     ))}
                   </div>
@@ -217,11 +237,10 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
               <h3 className="mb-4 text-sm font-semibold">Video Details</h3>
               <div className="space-y-3">
                 {[
-                  { icon: Clock, label: "Duration", value: formatDuration(videoData.duration) },
-                  { icon: Eye, label: "Views", value: videoData.views.toLocaleString() },
-                  { icon: Film, label: "Resolution", value: videoData.resolution },
-                  { icon: HardDrive, label: "Size", value: videoData.size },
-                  { icon: BarChart3, label: "Bitrate", value: videoData.bitrate },
+                  { icon: Clock, label: "Duration", value: formatDuration(video.duration) },
+                  { icon: Eye, label: "Views", value: (video.views ?? 0).toLocaleString() },
+                  { icon: Film, label: "Resolution", value: video.resolution || "—" },
+                  { icon: HardDrive, label: "Size", value: formatBytes(video.size) },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs text-zinc-500">
@@ -235,22 +254,31 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
               <Separator className="my-4 bg-white/[0.06]" />
               <div className="space-y-2">
                 <p className="text-xs text-zinc-500">Format</p>
-                <p className="font-mono text-xs text-zinc-300">{videoData.format}</p>
+                <p className="font-mono text-xs text-zinc-300">{video.format || "—"}</p>
               </div>
               <div className="mt-3 space-y-2">
                 <p className="text-xs text-zinc-500">Created</p>
                 <p className="text-xs text-zinc-300">
-                  {new Date(videoData.createdAt).toLocaleString()}
+                  {video.createdAt ? new Date(video.createdAt).toLocaleString() : "—"}
                 </p>
               </div>
+              {video.url && (
+                <>
+                  <Separator className="my-4 bg-white/[0.06]" />
+                  <div className="space-y-2">
+                    <p className="text-xs text-zinc-500">HLS URL</p>
+                    <p className="break-all font-mono text-[10px] text-zinc-400">{video.url}</p>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Distribution Status */}
             <div className="glass rounded-2xl p-6">
               <h3 className="mb-4 text-sm font-semibold">Distribution</h3>
-              {videoData.channels.length > 0 ? (
+              {video.channels && video.channels.length > 0 ? (
                 <div className="space-y-3">
-                  {videoData.channels.map((ch) => (
+                  {video.channels.map((ch) => (
                     <div
                       key={ch}
                       className="flex items-center justify-between rounded-xl bg-white/[0.03] p-3"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Search, Filter, Grid3X3, List, Trash2, Send, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,33 +8,53 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { VideoCard } from "@/components/dashboard/video-card";
 import { cn } from "@/lib/utils";
-import type { Video } from "@/lib/api";
-
-const mockVideos: Video[] = [
-  { id: "1", title: "Product Launch Keynote 2026", status: "ready", duration: 3420, createdAt: "2026-04-03T10:00:00Z", views: 12400, resolution: "4K" },
-  { id: "2", title: "Engineering Deep Dive: Streaming Architecture", status: "processing", duration: 2160, createdAt: "2026-04-03T14:30:00Z", views: 0, resolution: "1080p" },
-  { id: "3", title: "Customer Testimonials Compilation", status: "ready", duration: 960, createdAt: "2026-04-02T09:00:00Z", views: 5600, resolution: "1080p" },
-  { id: "4", title: "Q1 All Hands Recording", status: "ready", duration: 5400, createdAt: "2026-04-01T16:00:00Z", views: 890, resolution: "1080p" },
-  { id: "5", title: "Tutorial: Getting Started with VideoOS", status: "ready", duration: 1800, createdAt: "2026-03-30T11:00:00Z", views: 24000, resolution: "4K" },
-  { id: "6", title: "Brand Intro Animation", status: "ready", duration: 30, createdAt: "2026-03-28T15:00:00Z", views: 3200, resolution: "4K" },
-  { id: "7", title: "Webinar: Future of Streaming", status: "failed", duration: 7200, createdAt: "2026-03-25T09:00:00Z", views: 0, resolution: "1080p" },
-  { id: "8", title: "Internal Demo: AI Transcription", status: "processing", duration: 1200, createdAt: "2026-04-04T08:00:00Z", views: 0, resolution: "1080p" },
-];
+import { api, type Video } from "@/lib/api";
 
 const filters = ["All", "Ready", "Processing", "Failed"];
 
 export default function VideosPage() {
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const filteredVideos = mockVideos.filter((v) => {
-    const matchesSearch = v.title.toLowerCase().includes(search.toLowerCase());
-    const matchesFilter =
-      activeFilter === "All" || v.status === activeFilter.toLowerCase();
-    return matchesSearch && matchesFilter;
-  });
+  const fetchVideos = useCallback(async () => {
+    try {
+      setLoading(true);
+      const statusFilter = activeFilter === "All" ? undefined : activeFilter.toLowerCase();
+      const result = await api.videos.list({
+        status: statusFilter,
+        search: search || undefined,
+      });
+      setVideos(result.items);
+      setTotal(result.total);
+    } catch (err) {
+      console.error("Failed to fetch videos:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeFilter, search]);
+
+  useEffect(() => {
+    fetchVideos();
+  }, [fetchVideos]);
+
+  const handleDelete = async () => {
+    for (const id of selected) {
+      try {
+        await api.videos.delete(id);
+      } catch (err) {
+        console.error(`Failed to delete video ${id}:`, err);
+      }
+    }
+    setSelected(new Set());
+    fetchVideos();
+  };
+
+  const filteredVideos = videos;
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
@@ -53,7 +73,7 @@ export default function VideosPage() {
       >
         <h1 className="text-3xl font-bold tracking-tight">Video Library</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          {mockVideos.length} videos in your library
+          {total} videos in your library
         </p>
       </motion.div>
 
@@ -143,6 +163,7 @@ export default function VideosPage() {
             size="sm"
             variant="ghost"
             className="h-8 text-xs text-red-400 hover:text-red-300"
+            onClick={handleDelete}
           >
             <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
           </Button>
@@ -189,14 +210,20 @@ export default function VideosPage() {
         ))}
       </div>
 
-      {filteredVideos.length === 0 && (
+      {loading && (
+        <div className="flex items-center justify-center py-20">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-white" />
+        </div>
+      )}
+
+      {!loading && filteredVideos.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/[0.04]">
             <Search className="h-8 w-8 text-zinc-700" />
           </div>
           <p className="text-sm font-medium text-zinc-400">No videos found</p>
           <p className="mt-1 text-xs text-zinc-600">
-            Try adjusting your search or filters
+            {total === 0 ? "Upload your first video to get started" : "Try adjusting your search or filters"}
           </p>
         </div>
       )}

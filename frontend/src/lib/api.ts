@@ -12,17 +12,80 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   return res.json();
 }
 
+// API response wrapper from backend: { status: "ok", data: T }
+interface ApiResponse<T> {
+  status: string;
+  data: T;
+  total?: number;
+}
+
+// Map backend VideoRecord to frontend Video
+function mapVideo(v: BackendVideo): Video {
+  return {
+    id: v.videoId,
+    title: v.title,
+    description: v.description,
+    status: v.status,
+    duration: v.duration,
+    thumbnailUrl: v.thumbnailUrl,
+    url: v.hlsUrl,
+    createdAt: v.createdAt ?? "",
+    size: v.sizeBytes,
+    format: v.format,
+    resolution: v.resolution,
+    views: v.views,
+  };
+}
+
+interface BackendVideo {
+  videoId: string;
+  title: string;
+  description?: string;
+  filename: string;
+  sizeBytes: number;
+  hlsUrl?: string;
+  thumbnailUrl?: string;
+  status: "uploading" | "processing" | "ready" | "failed";
+  duration?: number;
+  resolution?: string;
+  format?: string;
+  userId?: string;
+  views: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export const api = {
   videos: {
-    list: () => apiFetch<Video[]>("/api/videos"),
-    get: (id: string) => apiFetch<Video>(`/api/videos/${id}`),
+    list: async (params?: { status?: string; search?: string }): Promise<{ items: Video[]; total: number }> => {
+      const query = new URLSearchParams();
+      if (params?.status) query.set("status", params.status);
+      if (params?.search) query.set("search", params.search);
+      const qs = query.toString();
+      const res = await apiFetch<ApiResponse<BackendVideo[]>>(`/api/videos${qs ? `?${qs}` : ""}`);
+      return { items: (res.data || []).map(mapVideo), total: (res as any).total ?? 0 };
+    },
+    get: async (id: string): Promise<Video> => {
+      const res = await apiFetch<ApiResponse<BackendVideo>>(`/api/videos/${id}`);
+      return mapVideo(res.data);
+    },
+    update: async (id: string, data: Partial<Video>): Promise<Video> => {
+      const res = await apiFetch<ApiResponse<BackendVideo>>(`/api/videos/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      });
+      return mapVideo(res.data);
+    },
+    delete: async (id: string): Promise<void> => {
+      await apiFetch(`/api/videos/${id}`, { method: "DELETE" });
+    },
     upload: (formData: FormData) =>
       fetch(`${API_BASE}/api/videos/upload`, { method: "POST", body: formData }),
   },
   streams: {
-    list: () => apiFetch<Stream[]>("/api/streams"),
+    list: () => apiFetch<ApiResponse<Stream[]>>("/api/streams").then((r) => r.data || []),
     create: (data: Partial<Stream>) =>
-      apiFetch<Stream>("/api/streams", { method: "POST", body: JSON.stringify(data) }),
+      apiFetch<ApiResponse<Stream>>("/api/streams", { method: "POST", body: JSON.stringify(data) }).then((r) => r.data),
   },
 };
 
